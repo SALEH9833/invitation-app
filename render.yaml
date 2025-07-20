@@ -1,40 +1,38 @@
 # render.yaml
+
 services:
   # Base de données PostgreSQL
-  - type: psql # <-- CORRECTION ICI
+  - type: postgres # <-- LE TYPE CORRECT EST 'postgres'
     name: invitation-db-postgres
-    region: frankfurt # On choisit une région en Europe
+    region: frankfurt
 
   # Application Web Flask
   - type: web
     name: invitation-app-flask
     env: python
     region: frankfurt
-    plan: free # On utilise le plan gratuit
-    buildCommand: |
-      pip install --upgrade pip
-      pip install -r requirements.txt
-      flask db upgrade
+    plan: free
+    buildCommand: "pip install -r requirements.txt && flask db upgrade"
     startCommand: "gunicorn app:app"
     envVars:
-      - key: DATABASE_URL # Render injecte automatiquement l'URL de la base de données
+      - key: DATABASE_URL
         fromService:
-          type: psql # <-- CORRECTION ICI
+          type: postgres # <-- CORRECTION ICI
           name: invitation-db-postgres
           property: connectionString
       - key: FLASK_APP
         value: app.py
       - key: PYTHON_VERSION
-        value: "3.11.0" # Mettre la version entre guillemets est une bonne pratique
-      - fromGroup: app-secrets # On va créer ce groupe pour nos secrets
+        value: "3.11.0"
+      - fromGroup: app-secrets
 
 # Groupe de variables secrètes
 envVarGroups:
   - name: app-secrets
     envVars:
       - key: SECRET_KEY
-        generateValue: true # Render va générer une clé secrète pour nous
+        generateValue: true
       - key: EMAIL_USER
-        value: "votre.email.reel@gmail.com" # Mettez votre vrai email ici
+        value: "votre.email.reel@gmail.com" # Mettez votre vrai email
       - key: EMAIL_PASS
-        value: "votremotdepasseapplication16lettres" # Mettez votre vrai mot de passe d'appli ici
+        value: "votremotdepasseapplication16lettres" # Mettez votre vrai mot de passe
