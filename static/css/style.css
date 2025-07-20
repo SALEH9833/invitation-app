@@ -1,0 +1,95 @@
+/* static/css/style.css */
+
+/* --- Variables de Thème --- */
+:root {
+    --primary-color: #0d6efd;
+    --danger-color: #dc3545;
+    --success-color: #198754;
+    --warning-color: #ffc107;
+    
+    --bs-body-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --bs-body-bg: #f0f2f5; /* Un gris très léger pour le fond */
+    --bs-body-color: #212529;
+    --bs-card-bg: #ffffff;
+    --bs-card-border-color: #dee2e6;
+    --bs-table-striped-bg: rgba(0, 0, 0, 0.03);
+    --bs-border-color: #dee2e6;
+    --bs-light-bg: #f8f9fa;
+}
+
+[data-bs-theme="dark"] {
+    --bs-body-bg: #18191a;
+    --bs-body-color: #e4e6eb;
+    --bs-card-bg: #242526;
+    --bs-card-border-color: #3a3b3c;
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.05);
+    --bs-border-color: #495057;
+    --bs-light-bg: #3a3b3c;
+}
+
+/* --- Style Général --- */
+body {
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 8px 16px rgba(0,0,0,0.1);
+    border: 1px solid var(--bs-card-border-color);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.12), 0 10px 20px rgba(0,0,0,0.12);
+}
+
+.btn {
+    transition: all 0.2s ease-in-out;
+}
+
+/* --- Style de l'interrupteur de thème --- */
+.theme-switch-wrapper {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+.theme-switch { display: inline-block; height: 34px; position: relative; width: 60px; }
+.theme-switch input { display:none; }
+.slider { background-color: #ccc; position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; transition: .4s; border-radius: 34px; }
+.slider:before { background-color: white; position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--primary-color); }
+input:checked + .slider:before { transform: translateX(26px); }
+
+
+/* === STYLES SPÉCIFIQUES POUR LE FORMULAIRE REÇU === */
+
+.receipt-form {
+    max-width: 800px; /* On donne une largeur maximale au formulaire */
+    margin: auto; /* Pour le centrer */
+}
+
+.receipt-header, .receipt-footer {
+    padding: 1rem 1.5rem;
+    background-color: var(--bs-light-bg);
+}
+
+.receipt-body {
+    padding: 1.5rem;
+}
+
+.receipt-section {
+    border: 1px solid var(--bs-border-color);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border-radius: 0.25rem;
+}
+
+.receipt-section-title {
+    font-weight: bold;
+    text-align: center;
+    border-bottom: 1px solid var(--bs-border-color);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    color: var(--bs-secondary-color);
+}

@@ -1,0 +1,42 @@
+# render.yaml
+services:
+  # Base de données PostgreSQL
+  - type: pgs
+    name: invitation-db-postgres
+    postgres:
+      version: 13
+    region: frankfurt # On choisit une région en Europe
+
+  # Application Web Flask
+  - type: web
+    name: invitation-app-flask
+    env: python
+    region: frankfurt
+    plan: free # On utilise le plan gratuit
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+      flask db upgrade
+    startCommand: "gunicorn app:app"
+    envVars:
+      - key: DATABASE_URL # Render injecte automatiquement l'URL de la base de données
+        fromService:
+          type: pgs
+          name: invitation-db-postgres
+          property: connectionString
+      - key: FLASK_APP
+        value: app.py
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - fromGroup: app-secrets # On va créer ce groupe pour nos secrets
+
+# Groupe de variables secrètes
+envVarGroups:
+  - name: app-secrets
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true # Render va générer une clé secrète pour nous
+      - key: EMAIL_USER
+        value: "votre.email@gmail.com" # Mettez votre email ici
+      - key: EMAIL_PASS
+        value: "votremotdepasseapplication16lettres" # Mettez votre mot de passe d'appli ici

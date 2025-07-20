@@ -1,0 +1,58 @@
+<!-- templates/secretariat/dashboard.html -->
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="pb-2 mb-4 border-bottom">
+    <h2>Tableau de Bord - Secrétariat</h2>
+</div>
+<p class="lead">Bonjour, <strong>{{ current_user.email }}</strong>. Choisissez une action :</p>
+
+<div class="row g-4 mt-3">
+    <!-- Carte 1: Nouvelle Invitation -->
+    <div class="col-lg-4 col-md-6">
+        <div class="card h-100 text-center">
+            <div class="card-body d-flex flex-column justify-content-center">
+                <h5 class="card-title">Nouvelle Invitation</h5>
+                <p class="card-text text-muted">Créer et envoyer une nouvelle demande au service de restauration.</p>
+                <a href="{{ url_for('nouvelle_invitation') }}" class="btn btn-primary mt-3">Commencer</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Carte 2: Historique -->
+    <div class="col-lg-4 col-md-6">
+        <div class="card h-100 text-center">
+            <div class="card-body d-flex flex-column justify-content-center">
+                <h5 class="card-title">Mon Historique</h5>
+                <p class="card-text text-muted">Consulter toutes les invitations créées et suivre leur statut.</p>
+                <a href="{{ url_for('historique_secretariat') }}" class="btn btn-outline-secondary mt-3">Consulter</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Carte 3: Statistiques -->
+    <div class="col-lg-4 col-md-12">
+        <div class="card h-100 text-center">
+            <div class="card-body d-flex flex-column justify-content-center">
+                <h5 class="card-title">Statistiques & Rapports</h5>
+                <p class="card-text text-muted">Visualiser les données et exporter des rapports PDF.</p>
+                <a href="{{ url_for('statistiques_secretariat') }}" class="btn btn-outline-secondary mt-3">Analyser</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+<!-- Script pour le téléchargement auto de PDF (spécifique à cette page) -->
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('download_pdf_id')) {
+        const pdfId = urlParams.get('download_pdf_id');
+        window.location.href = `/download/pdf/${pdfId}`;
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+});
+</script>
+{% endblock %}

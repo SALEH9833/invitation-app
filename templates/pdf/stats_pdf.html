@@ -1,0 +1,62 @@
+<!-- templates/pdf/stats_pdf.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport de Statistiques</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 10px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-bottom: 20px; }
+        .logo { height: 50px; }
+        .contact { text-align: right; font-size: 9px; color: #555; }
+        h1, h2 { text-align: center; }
+        .stats-cards { text-align: center; margin: 20px 0; }
+        .card { display: inline-block; width: 22%; margin: 0 1%; padding: 10px; border: 1px solid #ddd; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="/static/images/logo.png" class="logo" alt="Logo Ciments du Maroc">
+        <div class="contact">
+            <strong>Usine de Safi</strong><br>
+            B.P 29, Safi - Maroc<br>
+            Tél. 05 24 61 91 00/01
+        </div>
+    </div>
+    <h1>Rapport de Statistiques</h1>
+    <p>Période du <strong>{{ start_date }}</strong> au <strong>{{ end_date }}</strong>.</p>
+    
+    <h2>Résumé</h2>
+    <div class="stats-cards">
+        <div class="card"><strong>{{ total_invitations }}</strong><br>Totales</div>
+        <div class="card"><strong>{{ stats.get('accepted', 0) }}</strong><br>Acceptées</div>
+        <div class="card"><strong>{{ stats.get('rejected', 0) }}</strong><br>Refusées</div>
+        <div class="card"><strong>{{ stats.get('pending', 0) }}</strong><br>En attente</div>
+    </div>
+
+    <h2>Invitations par Société</h2>
+    {% if stats_par_societe %}
+    <table>
+        <thead>
+            <tr>
+                <th>Société</th>
+                <th style="text-align: right;">Nombre d'invitations</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for societe, count in stats_par_societe %}
+            <tr>
+                <td>{{ societe }}</td>
+                <td style="text-align: right;">{{ count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align: center; margin-top: 30px;">Aucune société invitée pour cette période.</p>
+    {% endif %}
+</body>
+</html>

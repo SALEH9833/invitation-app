@@ -1,0 +1,81 @@
+<!-- templates/secretariat/new_invitation.html -->
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="card receipt-form shadow-lg">
+
+    <!-- === EN-TÊTE DU REÇU === -->
+    <div class="receipt-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" style="height: 50px;">
+            <div class="text-end text-muted small">
+                <strong>Usine de Safi</strong><br>
+                B.P 29, Safi - Maroc<br>
+                Tél. 05 24 61 91 00/01
+            </div>
+        </div>
+    </div>
+
+    <div class="receipt-body">
+        <h3 class="text-center mb-4">Invitation Restaurant</h3>
+        <form id="new-invitation-form" method="POST" action="">
+            {{ form.hidden_tag() }}
+
+            <div class="row mb-4 align-items-center">
+                <div class="col-md-6">{{ form.service_demandeur.label(class="form-label") }}{{ form.service_demandeur(class="form-control") }}</div>
+                <div class="col-md-6">{{ form.responsable_email.label(class="form-label") }}{{ form.responsable_email(class="form-control") }}</div>
+            </div>
+
+            <div class="receipt-section">
+                <div class="receipt-section-title">Personnes Invitées</div>
+                <div id="guest-list">
+                    <div class="row mb-2">
+                        <div class="col-md-4"><input type="text" name="nom_invite[]" class="form-control" placeholder="Nom complet"></div>
+                        <div class="col-md-4"><input type="email" name="email_invite[]" class="form-control" placeholder="Email (optionnel)"></div>
+                        <div class="col-md-4"><input type="text" name="societe_invite[]" class="form-control" placeholder="Société"></div>
+                    </div>
+                </div>
+                <div class="mt-2"><button type="button" id="add-guest-btn" class="btn btn-sm btn-outline-success">+ Ajouter un invité</button></div>
+                <template id="guest-template">
+                    <div class="row mb-2">
+                        <div class="col-md-4"><input type="text" name="nom_invite[]" class="form-control" placeholder="Nom complet"></div>
+                        <div class="col-md-4"><input type="email" name="email_invite[]" class="form-control" placeholder="Email (optionnel)"></div>
+                        <div class="col-md-4"><input type="text" name="societe_invite[]" class="form-control" placeholder="Société"></div>
+                    </div>
+                </template>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="receipt-section h-100">
+                        <div class="receipt-section-title">Menu du jour</div>
+                        <div class="row align-items-center mb-3"><div class="col-sm-6">{{ form.nombre_repas.label }}</div><div class="col-sm-6">{{ form.nombre_repas(class="form-control text-center", id="nombre_repas") }}</div></div>
+                        <div class="row align-items-center mb-3"><div class="col-sm-6">{{ form.nombre_desserts.label }}</div><div class="col-sm-6">{{ form.nombre_desserts(class="form-control text-center", id="nombre_desserts") }}</div></div>
+                        <div class="row align-items-center mb-3"><div class="col-sm-6">{{ form.nombre_limonades.label }}</div><div class="col-sm-6">{{ form.nombre_limonades(class="form-control text-center", id="nombre_limonades") }}</div></div>
+                        <div class="row align-items-center"><div class="col-sm-6">{{ form.nombre_boissons_chaudes.label }}</div><div class="col-sm-6">{{ form.nombre_boissons_chaudes(class="form-control text-center", id="nombre_boissons_chaudes") }}</div></div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="receipt-section mb-3">
+                        <div class="receipt-section-title">Visa service demandeur</div>
+                        <textarea name="visa_demandeur" class="form-control border-0 bg-transparent" rows="2" placeholder="(Nom et visa...)"></textarea>
+                    </div>
+                    <div class="receipt-section">
+                        <div class="receipt-section-title">Accord</div>
+                        <input type="date" name="date_accord" class="form-control" value="{{ date_du_jour_iso }}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Retour</a>
+                {{ form.submit(class="btn btn-primary btn-lg px-5") }}
+            </div>
+        </form>
+    </div>
+
+    <div class="receipt-footer text-muted small text-center">
+        L'original de cette demande doit être remis au service de cuisine au plus tard : à 10 heures pour le menu du jour, et 24 heures avant pour une proposition de menu.
+    </div>
+</div>
+{% endblock %}

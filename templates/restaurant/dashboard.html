@@ -1,0 +1,105 @@
+<!-- templates/restaurant/dashboard.html -->
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Tableau de Bord - Restauration</h2>
+    <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-secondary">Déconnexion</a>
+</div>
+<p>Bonjour, <strong>{{ current_user.email }}</strong>.</p>
+
+<!-- Structure des onglets Bootstrap -->
+<ul class="nav nav-tabs" id="invitationTab" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending-tab-pane" type="button" role="tab" aria-controls="pending-tab-pane" aria-selected="true">
+      En Attente <span class="badge bg-warning text-dark">{{ invitations_en_attente|length }}</span>
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history-tab-pane" type="button" role="tab" aria-controls="history-tab-pane" aria-selected="false">
+      Historique <span class="badge bg-secondary">{{ invitations_traitees|length }}</span>
+    </button>
+  </li>
+</ul>
+
+<!-- Contenu des onglets -->
+<div class="tab-content" id="invitationTabContent">
+  
+  <!-- === CONTENU DE L'ONGLET "EN ATTENTE" === -->
+  <div class="tab-pane fade show active" id="pending-tab-pane" role="tabpanel" aria-labelledby="pending-tab" tabindex="0">
+    <div class="pt-4">
+      {% if invitations_en_attente %}
+        {% for invitation in invitations_en_attente %}
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between">
+                <strong>Invitation #{{ invitation.id }}</strong>
+                <span class="text-muted">Reçue le: {{ invitation.created_at.strftime('%d-%m-%Y à %H:%M') }}</span>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">Demandeur: {{ invitation.service_demandeur }}</h5>
+                <h6>Invités ({{ invitation.guests|length }}) :</h6>
+                <ul>
+                    {% for guest in invitation.guests %} <li>{{ guest.nom }} ({{ guest.societe }})</li> {% endfor %}
+                </ul>
+                <h6>Détails du repas :</h6>
+                <p class="card-text">Repas: <strong>{{ invitation.nombre_repas }}</strong> | Desserts: <strong>{{ invitation.nombre_desserts }}</strong> | Limonades: <strong>{{ invitation.nombre_limonades }}</strong> | Boissons chaudes: <strong>{{ invitation.nombre_boissons_chaudes }}</strong></p>
+            </div>
+            <div class="card-footer text-end">
+                <form action="{{ url_for('traiter_invitation', invitation_id=invitation.id, action='refuser') }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">Refuser</button>
+                </form>
+                <form action="{{ url_for('traiter_invitation', invitation_id=invitation.id, action='accepter') }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-success">Accepter</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="alert alert-success mt-3">Il n'y a aucune invitation en attente.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- === CONTENU DE L'ONGLET "HISTORIQUE" === -->
+  <div class="tab-pane fade" id="history-tab-pane" role="tabpanel" aria-labelledby="history-tab" tabindex="0">
+    <div class="pt-4">
+      {% if invitations_traitees %}
+        <div class="card">
+          <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+              <thead>
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Demandeur</th>
+                  <th scope="col">Invités</th>
+                  <th scope="col" class="text-center">Statut Final</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for invitation in invitations_traitees %}
+                <tr>
+                  <th scope="row">#{{ invitation.id }}</th>
+                  <td>{{ invitation.created_at.strftime('%d-%m-%Y') }}</td>
+                  <td>{{ invitation.service_demandeur }}</td>
+                  <td>{{ invitation.guests|map(attribute='nom')|join(', ') }}</td>
+                  <td class="text-center">
+                    {% if invitation.status == 'accepted' %}
+                      <span class="badge bg-success">Acceptée</span>
+                    {% elif invitation.status == 'rejected' %}
+                      <span class="badge bg-danger">Refusée</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% else %}
+        <div class="alert alert-info mt-3">Aucune invitation n'a encore été traitée.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

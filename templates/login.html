@@ -1,0 +1,39 @@
+<!-- templates/login.html -->
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center" style="min-height: 70vh;">
+    <div class="col-md-4 col-sm-8">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                
+                <div class="text-center mb-4">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo Ciments du Maroc" style="height: 50px;">
+                </div>
+
+                <h4 class="card-title text-center mb-4">Connexion</h4>
+                
+                <form method="POST" action="" novalidate>
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        {{ form.email.label(class="form-label") }}
+                        <!-- On utilise le placeholder pour l'email, comme sur l'image -->
+                        {{ form.email(class="form-control", placeholder="secretaire@cimentsdumaroc.ma") }}
+                    </div>
+                    
+                    <div class="mb-4">
+                        {{ form.password.label(class="form-label") }}
+                        {{ form.password(class="form-control") }}
+                    </div>
+                    
+                    <div class="d-grid">
+                        <!-- On change la classe du bouton pour qu'il soit rouge -->
+                        {{ form.submit(class="btn btn-danger") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

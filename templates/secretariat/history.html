@@ -1,0 +1,76 @@
+<!-- templates/secretariat/history.html -->
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Mon Historique d'Invitations</h2>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-secondary">Retour au tableau de bord</a>
+</div>
+
+<!-- Formulaire pour télécharger le PDF -->
+<div class="card bg-light mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('download_history_pdf') }}">
+            <h5 class="card-title">Exporter en PDF</h5>
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="start_date_history" class="form-label">Date de début</label>
+                    <input type="date" class="form-control" id="start_date_history" name="start_date">
+                </div>
+                <div class="col-md-4">
+                    <label for="end_date_history" class="form-label">Date de fin</label>
+                    <input type="date" class="form-control" id="end_date_history" name="end_date">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-success w-100">Télécharger le rapport</button>
+                </div>
+            </div>
+            <div class="form-text">Laissez les dates vides pour exporter tout l'historique.</div>
+        </form>
+    </div>
+</div>
+
+<!-- Tableau d'historique -->
+{% if invitations %}
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-striped table-hover mb-0">
+            <thead>
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Date de Création</th>
+                    <th scope="col">Service Demandeur</th>
+                    <th scope="col">Invités</th>
+                    <th scope="col" class="text-center">Statut</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invitation in invitations %}
+                <tr>
+                    <th scope="row">#{{ invitation.id }}</th>
+                    <td>{{ invitation.created_at.strftime('%d-%m-%Y %H:%M') }}</td>
+                    <td>{{ invitation.service_demandeur }}</td>
+                    <td>{{ invitation.guests|map(attribute='nom')|join(', ') }}</td>
+                    <td class="text-center">
+                        {% if invitation.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">En attente</span>
+                        {% elif invitation.status == 'accepted' %}
+                            <span class="badge bg-success">Acceptée</span>
+                        {% elif invitation.status == 'rejected' %}
+                            <span class="badge bg-danger">Refusée</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ invitation.status }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    Vous n'avez encore créé aucune invitation. <a href="{{ url_for('nouvelle_invitation') }}" class="alert-link">Créez-en une maintenant !</a>
+</div>
+{% endif %}
+{% endblock %}

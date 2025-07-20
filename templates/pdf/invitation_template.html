@@ -1,0 +1,87 @@
+<!-- templates/pdf/invitation_template.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Invitation Restaurant #{{ invitation.id }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; color: #333; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+        .logo { height: 50px; }
+        .contact { text-align: right; font-size: 9px; color: #555; }
+        h1, h3 { text-align: center; }
+        .invitation-details, .guest-details, .meal-details { margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .footer { margin-top: 30px; font-size: 10px; text-align: center; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="/static/images/logo.png" class="logo" alt="Logo Ciments du Maroc">
+        <div class="contact">
+            <strong>Usine de Safi</strong><br>
+            B.P 29, Safi - Maroc<br>
+            Tél. 05 24 61 91 00/01<br>
+            Fax 05 24 61 91 06
+        </div>
+    </div>
+    <h1>Invitation Restaurant</h1>
+
+    <div class="invitation-details">
+        <strong>N° Invitation :</strong> {{ invitation.id }}<br>
+        <strong>Date :</strong> {{ invitation.created_at.strftime('%d-%m-%Y') }}<br>
+        <strong>Service demandeur :</strong> {{ invitation.service_demandeur }}<br>
+        <strong>Responsable :</strong> {{ invitation.responsable_email }}
+    </div>
+
+    <div class="guest-details">
+        <h3>Personnes Invitées</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Société</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for guest in invitation.guests %}
+                <tr>
+                    <td>{{ guest.nom }}</td>
+                    <td>{{ guest.societe }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="meal-details">
+        <h3>Détails du Repas</h3>
+        <table>
+            <tr>
+                <td>Nombre de repas servis</td>
+                <td style="text-align: center;">{{ invitation.nombre_repas }}</td>
+            </tr>
+            <tr>
+                <td>Desserts</td>
+                <td style="text-align: center;">{{ invitation.nombre_desserts }}</td>
+            </tr>
+            <tr>
+                <td>Limonades</td>
+                <td style="text-align: center;">{{ invitation.nombre_limonades }}</td>
+            </tr>
+            <tr>
+                <td>Boissons chaudes</td>
+                <td style="text-align: center;">{{ invitation.nombre_boissons_chaudes }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        L'original de cette demande doit être remis au service de cuisine au plus tard :
+        <br>- à 10 heures pour le menu du jour.
+        <br>- 24 heures avant pour une proposition de menu.
+    </div>
+</body>
+</html>
