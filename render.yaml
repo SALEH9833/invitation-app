@@ -1,10 +1,8 @@
 # render.yaml
 services:
   # Base de données PostgreSQL
-  - type: pgs
+  - type: psql # <-- CORRECTION ICI
     name: invitation-db-postgres
-    postgres:
-      version: 13
     region: frankfurt # On choisit une région en Europe
 
   # Application Web Flask
@@ -21,13 +19,13 @@ services:
     envVars:
       - key: DATABASE_URL # Render injecte automatiquement l'URL de la base de données
         fromService:
-          type: pgs
+          type: psql # <-- CORRECTION ICI
           name: invitation-db-postgres
           property: connectionString
       - key: FLASK_APP
         value: app.py
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: "3.11.0" # Mettre la version entre guillemets est une bonne pratique
       - fromGroup: app-secrets # On va créer ce groupe pour nos secrets
 
 # Groupe de variables secrètes
@@ -37,6 +35,6 @@ envVarGroups:
       - key: SECRET_KEY
         generateValue: true # Render va générer une clé secrète pour nous
       - key: EMAIL_USER
-        value: "votre.email@gmail.com" # Mettez votre email ici
+        value: "votre.email.reel@gmail.com" # Mettez votre vrai email ici
       - key: EMAIL_PASS
-        value: "votremotdepasseapplication16lettres" # Mettez votre mot de passe d'appli ici
+        value: "votremotdepasseapplication16lettres" # Mettez votre vrai mot de passe d'appli ici
