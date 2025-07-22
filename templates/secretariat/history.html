@@ -3,64 +3,86 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">Mon Historique d'Invitations</h2>
-    <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-secondary">Retour au tableau de bord</a>
+    <h2 class="page-title">Mon Historique d'Invitations</h2>
 </div>
-
-<!-- Formulaire pour télécharger le PDF -->
-<div class="card bg-light mb-4">
+</div>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary">Retour au tableau de bord</a>
+</div>
+<div class="card shadow-sm mb-4">
     <div class="card-body">
-        <form method="GET" action="{{ url_for('download_history_pdf') }}">
-            <h5 class="card-title">Exporter en PDF</h5>
+        <form method="GET" action="{{ url_for('historique_secretariat') }}">
+            <h5 class="card-title mb-3">Filtres et Rapports</h5>
             <div class="row g-3 align-items-end">
-                <div class="col-md-4">
-                    <label for="start_date_history" class="form-label">Date de début</label>
-                    <input type="date" class="form-control" id="start_date_history" name="start_date">
+                <div class="col-lg-3 col-md-6"><label class="form-label">Date de début</label><input type="date" class="form-control" name="start_date" value="{{ request.args.get('start_date', '') }}"></div>
+                <div class="col-lg-3 col-md-6"><label class="form-label">Date de fin</label><input type="date" class="form-control" name="end_date" value="{{ request.args.get('end_date', '') }}"></div>
+                <div class="col-lg-2 col-md-4">
+                    <label class="form-label">Société</label>
+                    <select name="societe" class="form-select">
+                        <option value="">Toutes</option>
+                        {% for societe in societes %}<option value="{{ societe }}" {% if societe == selected_societe %}selected{% endif %}>{{ societe }}</option>{% endfor %}
+                    </select>
                 </div>
-                <div class="col-md-4">
-                    <label for="end_date_history" class="form-label">Date de fin</label>
-                    <input type="date" class="form-control" id="end_date_history" name="end_date">
+                <div class="col-lg-2 col-md-4">
+                    <label class="form-label">Statut</label>
+                    <select name="status" class="form-select">
+                        <option value="">Tous</option>
+                        <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>Non Lu</option>
+                        <option value="read" {% if selected_status == 'read' %}selected{% endif %}>Lu</option>
+                    </select>
                 </div>
-                <div class="col-md-4">
-                    <button type="submit" class="btn btn-success w-100">Télécharger le rapport</button>
+                <div class="col-lg-2 col-md-4 d-flex mt-3 mt-lg-auto">
+                    <button type="submit" class="btn btn-primary w-100 me-2" title="Appliquer les filtres">Filtrer</button>
                 </div>
             </div>
-            <div class="form-text">Laissez les dates vides pour exporter tout l'historique.</div>
+             <div class="row mt-3">
+                <div class="col-12 text-end">
+                     <a href="{{ url_for('historique_secretariat') }}" class="btn btn-sm btn-outline-secondary">Réinitialiser</a>
+                </div>
+            </div>
         </form>
     </div>
 </div>
 
-<!-- Tableau d'historique -->
-{% if invitations %}
-<div class="card">
+<div class="card shadow-sm">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Résultats</h5>
+        <form method="GET" action="{{ url_for('download_history_pdf') }}">
+            <!-- Champs cachés pour transmettre les filtres au PDF -->
+            <input type="hidden" name="start_date" value="{{ request.args.get('start_date', '') }}">
+            <input type="hidden" name="end_date" value="{{ request.args.get('end_date', '') }}">
+            <input type="hidden" name="societe" value="{{ request.args.get('societe', '') }}">
+            <input type="hidden" name="status" value="{{ request.args.get('status', '') }}">
+            <button type="submit" class="btn btn-success btn-sm">Exporter en PDF</button>
+        </form>
+    </div>
     <div class="table-responsive">
         <table class="table table-striped table-hover mb-0">
             <thead>
                 <tr>
-                    <th scope="col">ID</th>
-                    <th scope="col">Date de Création</th>
-                    <th scope="col">Service Demandeur</th>
-                    <th scope="col">Invités</th>
-                    <th scope="col" class="text-center">Statut</th>
+                    <th class="ps-3">ID</th>
+                    <th>Date Création</th>
+                    <th>Service</th>
+                    <th>Invités (Société)</th>
+                    <th class="text-center">Statut</th>
                 </tr>
             </thead>
             <tbody>
                 {% for invitation in invitations %}
                 <tr>
-                    <th scope="row">#{{ invitation.id }}</th>
+                    <th class="ps-3">#{{ invitation.id }}</th>
                     <td>{{ invitation.created_at.strftime('%d-%m-%Y %H:%M') }}</td>
                     <td>{{ invitation.service_demandeur }}</td>
                     <td>{{ invitation.guests|map(attribute='nom')|join(', ') }}</td>
                     <td class="text-center">
-                        {% if invitation.status == 'pending' %}
-                            <span class="badge bg-warning text-dark">En attente</span>
-                        {% elif invitation.status == 'accepted' %}
-                            <span class="badge bg-success">Acceptée</span>
-                        {% elif invitation.status == 'rejected' %}
-                            <span class="badge bg-danger">Refusée</span>
-                        {% else %}
-                            <span class="badge bg-secondary">{{ invitation.status }}</span>
+                        {% if invitation.status == 'pending' %}<span class="badge bg-danger">Non Lu</span>
+                        {% elif invitation.status == 'read' %}<span class="badge bg-success">Lu</span>
                         {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center p-5">
+                        <p class="h5 text-muted">Aucune invitation ne correspond à vos critères.</p>
                     </td>
                 </tr>
                 {% endfor %}
@@ -68,9 +90,4 @@
         </table>
     </div>
 </div>
-{% else %}
-<div class="alert alert-info">
-    Vous n'avez encore créé aucune invitation. <a href="{{ url_for('nouvelle_invitation') }}" class="alert-link">Créez-en une maintenant !</a>
-</div>
-{% endif %}
 {% endblock %}

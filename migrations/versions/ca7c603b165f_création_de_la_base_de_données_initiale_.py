@@ -1,8 +1,8 @@
-"""Version initiale propre
+"""Création de la base de données initiale complète
 
-Revision ID: eff6b0fe46c0
+Revision ID: ca7c603b165f
 Revises: 
-Create Date: 2025-07-20 02:42:47.738706
+Create Date: 2025-07-21 11:54:22.198810
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'eff6b0fe46c0'
+revision = 'ca7c603b165f'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,7 +21,7 @@ def upgrade():
     op.create_table('user',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('email', sa.String(length=120), nullable=False),
-    sa.Column('password_hash', sa.String(length=128), nullable=True),
+    sa.Column('password_hash', sa.String(length=256), nullable=True),
     sa.Column('role', sa.String(length=20), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email')
@@ -30,6 +30,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('status', sa.String(length=20), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+    sa.Column('read_at', sa.DateTime(), nullable=True),
     sa.Column('service_demandeur', sa.String(length=100), nullable=False),
     sa.Column('responsable_email', sa.String(length=120), nullable=False),
     sa.Column('nombre_repas', sa.Integer(), nullable=True),
@@ -44,6 +45,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('nom', sa.String(length=100), nullable=False),
     sa.Column('societe', sa.String(length=100), nullable=True),
+    sa.Column('email', sa.String(length=120), nullable=True),
     sa.Column('invitation_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['invitation_id'], ['invitation.id'], ),
     sa.PrimaryKeyConstraint('id')

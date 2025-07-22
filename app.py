@@ -1,13 +1,9 @@
 # app.py
 
-# --- IMPORTS NÉCESSAIRES ---
 from dotenv import load_dotenv
 import os
 import datetime
 from sqlalchemy import func
-
-load_dotenv()
-
 from flask import Flask, render_template, redirect, url_for, flash, request, send_file
 from flask_mail import Mail, Message
 from weasyprint import HTML
@@ -18,18 +14,15 @@ from config import Config
 from models import db, User, Invitation, Guest
 from forms import LoginForm, InvitationForm
 
-# --- CONFIGURATION ET INITIALISATIONS ---
+load_dotenv()
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
 migrate = Migrate(app, db)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-login_manager.login_message = "Veuillez vous connecter pour accéder à cette page."
-login_manager.login_message_category = "info"
 mail = Mail(app)
 
-# --- GESTION DES UTILISATEURS ---
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -49,7 +42,6 @@ def create_users():
     db.session.commit()
     print("Opération terminée.")
 
-# --- ROUTES D'AUTHENTIFICATION ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -69,7 +61,6 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-# --- ROUTE PRINCIPALE (HUB) ---
 @app.route('/')
 @app.route('/dashboard')
 @login_required
@@ -78,16 +69,41 @@ def dashboard():
         return render_template('secretariat/dashboard.html')
     
     elif current_user.role == 'restaurant':
-        invitations_en_attente = Invitation.query.filter_by(status='pending').order_by(Invitation.created_at.asc()).all()
-        invitations_traitees = Invitation.query.filter(Invitation.status.in_(['accepted', 'rejected'])).order_by(Invitation.created_at.desc()).all()
-        return render_template('restaurant/dashboard.html', invitations_en_attente=invitations_en_attente, invitations_traitees=invitations_traitees)
+        societe_filter = request.args.get('societe')
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
+
+        societes = db.session.query(Guest.societe).filter(Guest.societe.isnot(None), Guest.societe != '').distinct().order_by(Guest.societe).all()
+        
+        query_pending = Invitation.query.filter_by(status='pending')
+        query_read = Invitation.query.filter_by(status='read')
+
+        if societe_filter:
+            query_pending = query_pending.join(Guest).filter(Guest.societe == societe_filter)
+            query_read = query_read.join(Guest).filter(Guest.societe == societe_filter)
+        if start_date_str:
+            start_date = datetime.datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            query_pending = query_pending.filter(Invitation.created_at >= start_date)
+            query_read = query_read.filter(Invitation.created_at >= start_date)
+        if end_date_str:
+            end_date = datetime.datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            query_pending = query_pending.filter(Invitation.created_at < (end_date + datetime.timedelta(days=1)))
+            query_read = query_read.filter(Invitation.created_at < (end_date + datetime.timedelta(days=1)))
+
+        invitations_non_lues = query_pending.order_by(Invitation.created_at.asc()).all()
+        invitations_lues = query_read.order_by(Invitation.read_at.desc()).all()
+
+        return render_template('restaurant/dashboard.html', 
+                               invitations_non_lues=invitations_non_lues,
+                               invitations_lues=invitations_lues,
+                               societes=[s[0] for s in societes],
+                               selected_societe=societe_filter)
     
     else:
-        flash("Votre rôle n'est pas défini. Déconnexion.", "danger")
+        flash("Rôle non défini.", "danger")
         logout_user()
         return redirect(url_for('login'))
 
-# --- ROUTES SECRÉTARIAT ---
 @app.route('/secretariat/invitation/nouvelle', methods=['GET', 'POST'])
 @login_required
 def nouvelle_invitation():
@@ -97,61 +113,65 @@ def nouvelle_invitation():
     form = InvitationForm()
     if form.validate_on_submit():
         nouvelle_invit = Invitation(service_demandeur=form.service_demandeur.data, responsable_email=form.responsable_email.data, nombre_repas=form.nombre_repas.data, nombre_desserts=form.nombre_desserts.data, nombre_limonades=form.nombre_limonades.data, nombre_boissons_chaudes=form.nombre_boissons_chaudes.data, user_id=current_user.id, status='pending')
-        
-        # === RÉCUPÉRATION DES EMAILS DES INVITÉS ===
         noms_invites = request.form.getlist('nom_invite[]')
         emails_invites = request.form.getlist('email_invite[]')
         societes_invites = request.form.getlist('societe_invite[]')
-
         guest_emails_to_notify = []
-
         for nom, email, societe in zip(noms_invites, emails_invites, societes_invites):
             if nom:
                 guest = Guest(nom=nom, email=email, societe=societe)
                 nouvelle_invit.guests.append(guest)
                 if email:
                     guest_emails_to_notify.append(email)
-
         db.session.add(nouvelle_invit)
         db.session.commit()
-        
         html_pour_pdf = render_template('pdf/invitation_template.html', invitation=nouvelle_invit)
         pdf_file_bytes = HTML(string=html_pour_pdf, base_url=request.url_root).write_pdf()
-        
         try:
-            # === MISE À JOUR DES DESTINATAIRES ===
             destinataires = [nouvelle_invit.responsable_email, 'restaurant@cimentsdumaroc.ma']
             destinataires.extend(guest_emails_to_notify)
             destinataires = list(set(destinataires))
-
-            msg = Message(
-                subject=f"Invitation au Restaurant - Ciments du Maroc",
-                sender=('Ciments du Maroc - GestInv', app.config['MAIL_USERNAME']),
-                recipients=destinataires
-            )
+            msg = Message(subject=f"Invitation au Restaurant - Ciments du Maroc", sender=('Ciments du Maroc - GestInv', app.config['MAIL_USERNAME']), recipients=destinataires)
             msg.body = f"Bonjour,\n\nVous êtes cordialement invité(e) à un repas au restaurant de Ciments du Maroc, organisé par le service {nouvelle_invit.service_demandeur}.\n\nVous trouverez les détails de l'invitation en pièce jointe."
-            
             msg.attach(f'invitation-{nouvelle_invit.id}.pdf', 'application/pdf', pdf_file_bytes)
-            
             mail.send(msg)
             flash('Invitation envoyée et notifiée par email avec succès !', 'success')
         except Exception as e:
             flash(f'L\'invitation a été créée, mais l\'envoi de l\'email a échoué. Erreur: {e}', 'danger')
-        
         return redirect(url_for('dashboard', download_pdf_id=nouvelle_invit.id))
-
     date_du_jour_iso = datetime.date.today().isoformat()
     return render_template('secretariat/new_invitation.html', form=form, date_du_jour_iso=date_du_jour_iso)
 
-# ... (toutes les autres routes restent les mêmes et sont correctes) ...
 @app.route('/secretariat/historique')
 @login_required
 def historique_secretariat():
     if current_user.role != 'secretariat':
         flash("Accès non autorisé.", "danger")
         return redirect(url_for('dashboard'))
-    invitations = Invitation.query.filter_by(user_id=current_user.id).order_by(Invitation.created_at.desc()).all()
-    return render_template('secretariat/history.html', invitations=invitations)
+    status_filter = request.args.get('status')
+    societe_filter = request.args.get('societe')
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    source_page = request.args.get('from_page')
+    societes = db.session.query(Guest.societe).join(Invitation).filter(Invitation.user_id == current_user.id, Guest.societe.isnot(None), Guest.societe != '').distinct().order_by(Guest.societe).all()
+    query = Invitation.query.filter_by(user_id=current_user.id)
+    if status_filter in ['pending', 'read']:
+        query = query.filter_by(status=status_filter)
+    if societe_filter:
+        query = query.join(Guest).filter(Guest.societe == societe_filter)
+    if start_date_str:
+        start_date = datetime.datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        query = query.filter(Invitation.created_at >= start_date)
+    if end_date_str:
+        end_date = datetime.datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        query = query.filter(Invitation.created_at < (end_date + datetime.timedelta(days=1)))
+    invitations = query.order_by(Invitation.created_at.desc()).all()
+    return render_template('secretariat/history.html', 
+                           invitations=invitations,
+                           societes=[s[0] for s in societes],
+                           selected_status=status_filter,
+                           selected_societe=societe_filter,
+                           source_page=source_page)
 
 @app.route('/secretariat/statistiques')
 @login_required
@@ -159,48 +179,48 @@ def statistiques_secretariat():
     if current_user.role != 'secretariat':
         flash("Accès non autorisé.", "danger")
         return redirect(url_for('dashboard'))
-    
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
-
+    societe_filter = request.args.get('societe')
+    societes = db.session.query(Guest.societe).filter(Guest.societe.isnot(None), Guest.societe != '').distinct().order_by(Guest.societe).all()
     query_invitations = Invitation.query
     query_guests = Guest.query.join(Invitation)
-
     if start_date_str:
         start_date = datetime.datetime.strptime(start_date_str, '%Y-%m-%d').date()
         query_invitations = query_invitations.filter(Invitation.created_at >= start_date)
         query_guests = query_guests.filter(Invitation.created_at >= start_date)
-    
     if end_date_str:
         end_date = datetime.datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        end_date_inclusive = end_date + datetime.timedelta(days=1)
-        query_invitations = query_invitations.filter(Invitation.created_at < end_date_inclusive)
-        query_guests = query_guests.filter(Invitation.created_at < end_date_inclusive)
-
+        query_invitations = query_invitations.filter(Invitation.created_at < (end_date + datetime.timedelta(days=1)))
+        query_guests = query_guests.filter(Invitation.created_at < (end_date + datetime.timedelta(days=1)))
+    if societe_filter:
+        query_invitations = query_invitations.join(Invitation.guests).filter(Guest.societe == societe_filter)
+        query_guests = query_guests.filter(Guest.societe == societe_filter)
     stats_par_statut = query_invitations.with_entities(Invitation.status, func.count(Invitation.id)).group_by(Invitation.status).all()
     stats = {status: count for status, count in stats_par_statut}
     stats_par_societe = query_guests.filter(Guest.societe.isnot(None), Guest.societe != '').with_entities(Guest.societe, func.count(Guest.id)).group_by(Guest.societe).order_by(func.count(Guest.id).desc()).all()
     total_invitations = query_invitations.count()
+    return render_template('secretariat/stats.html', 
+                           stats=stats, 
+                           stats_par_societe=stats_par_societe, 
+                           total_invitations=total_invitations,
+                           societes=[s[0] for s in societes],
+                           selected_societe=societe_filter)
 
-    return render_template('secretariat/stats.html', stats=stats, stats_par_societe=stats_par_societe, total_invitations=total_invitations)
-
-@app.route('/restaurant/invitation/<int:invitation_id>/<string:action>', methods=['POST'])
+@app.route('/restaurant/invitation/<int:invitation_id>/read', methods=['POST'])
 @login_required
-def traiter_invitation(invitation_id, action):
+def marquer_comme_lu(invitation_id):
     if current_user.role != 'restaurant':
         flash("Accès non autorisé.", "danger")
         return redirect(url_for('dashboard'))
     invitation = Invitation.query.get_or_404(invitation_id)
-    if invitation.status != 'pending':
-        flash("Cette invitation a déjà été traitée.", "warning")
-        return redirect(url_for('dashboard'))
-    if action == 'accepter':
-        invitation.status = 'accepted'
-        flash(f"L'invitation #{invitation.id} a été acceptée.", "success")
-    elif action == 'refuser':
-        invitation.status = 'rejected'
-        flash(f"L'invitation #{invitation.id} a été refusée.", "danger")
-    db.session.commit()
+    if invitation.status == 'pending':
+        invitation.status = 'read'
+        invitation.read_at = datetime.datetime.utcnow()
+        db.session.commit()
+        flash(f"Invitation #{invitation.id} marquée comme lue.", "success")
+    else:
+        flash(f"Cette invitation a déjà été lue.", "info")
     return redirect(url_for('dashboard'))
 
 @app.route('/download/pdf/<int:invitation_id>')
@@ -220,18 +240,23 @@ def download_history_pdf():
     if current_user.role != 'secretariat':
         flash("Accès non autorisé.", "danger")
         return redirect(url_for('dashboard'))
+    status_filter = request.args.get('status')
+    societe_filter = request.args.get('societe')
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
     query = Invitation.query.filter_by(user_id=current_user.id)
     start_date_display, end_date_display = "Début", "Aujourd'hui"
+    if status_filter in ['pending', 'read']:
+        query = query.filter_by(status=status_filter)
+    if societe_filter:
+        query = query.join(Guest).filter(Guest.societe == societe_filter)
     if start_date_str:
         start_date = datetime.datetime.strptime(start_date_str, '%Y-%m-%d').date()
         query = query.filter(Invitation.created_at >= start_date)
         start_date_display = start_date.strftime('%d-%m-%Y')
     if end_date_str:
         end_date = datetime.datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        end_date_inclusive = end_date + datetime.timedelta(days=1)
-        query = query.filter(Invitation.created_at < end_date_inclusive)
+        query = query.filter(Invitation.created_at < (end_date + datetime.timedelta(days=1)))
         end_date_display = end_date.strftime('%d-%m-%Y')
     invitations = query.order_by(Invitation.created_at.desc()).all()
     html = render_template('pdf/history_pdf.html', invitations=invitations, start_date=start_date_display, end_date=end_date_display)
@@ -246,6 +271,7 @@ def download_stats_pdf():
         return redirect(url_for('dashboard'))
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
+    societe_filter = request.args.get('societe')
     query_invitations = Invitation.query
     query_guests = Guest.query.join(Invitation)
     start_date_display, end_date_display = "Début", "Aujourd'hui"
@@ -256,10 +282,12 @@ def download_stats_pdf():
         start_date_display = start_date_obj.strftime('%d-%m-%Y')
     if end_date_str:
         end_date_obj = datetime.datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        end_date_inclusive = end_date_obj + datetime.timedelta(days=1)
-        query_invitations = query_invitations.filter(Invitation.created_at < end_date_inclusive)
-        query_guests = query_guests.filter(Invitation.created_at < end_date_inclusive)
+        query_invitations = query_invitations.filter(Invitation.created_at < (end_date_obj + datetime.timedelta(days=1)))
+        query_guests = query_guests.filter(Invitation.created_at < (end_date_obj + datetime.timedelta(days=1)))
         end_date_display = end_date_obj.strftime('%d-%m-%Y')
+    if societe_filter:
+        query_invitations = query_invitations.join(Invitation.guests).filter(Guest.societe == societe_filter)
+        query_guests = query_guests.filter(Guest.societe == societe_filter)
     stats_par_statut = query_invitations.with_entities(Invitation.status, func.count(Invitation.id)).group_by(Invitation.status).all()
     stats = {status: count for status, count in stats_par_statut}
     stats_par_societe = query_guests.filter(Guest.societe.isnot(None), Guest.societe != '').with_entities(Guest.societe, func.count(Guest.id)).group_by(Guest.societe).order_by(func.count(Guest.id).desc()).all()
@@ -267,3 +295,51 @@ def download_stats_pdf():
     html = render_template('pdf/stats_pdf.html', stats=stats, stats_par_societe=stats_par_societe, total_invitations=total_invitations, start_date=start_date_display, end_date=end_date_display)
     pdf = HTML(string=html, base_url=request.url_root).write_pdf()
     return send_file(io.BytesIO(pdf), mimetype='application/pdf', as_attachment=True, download_name='rapport_statistiques.pdf')
+
+
+@app.route('/restaurant/download_pdf')
+@login_required
+def download_restaurant_pdf():
+    if current_user.role != 'restaurant':
+        flash("Accès non autorisé.", "danger")
+        return redirect(url_for('dashboard'))
+
+    societe_filter = request.args.get('societe')
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    query_pending = Invitation.query.filter_by(status='pending')
+    query_read = Invitation.query.filter_by(status='read')
+    start_date_display, end_date_display = "Début", "Aujourd'hui"
+
+    if societe_filter:
+        query_pending = query_pending.join(Guest).filter(Guest.societe == societe_filter)
+        query_read = query_read.join(Guest).filter(Guest.societe == societe_filter)
+    if start_date_str:
+        start_date = datetime.datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        query_pending = query_pending.filter(Invitation.created_at >= start_date)
+        query_read = query_read.filter(Invitation.created_at >= start_date)
+        start_date_display = start_date.strftime('%d-%m-%Y')
+    if end_date_str:
+        end_date = datetime.datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        query_pending = query_pending.filter(Invitation.created_at < (end_date + datetime.timedelta(days=1)))
+        query_read = query_read.filter(Invitation.created_at < (end_date + datetime.timedelta(days=1)))
+        end_date_display = end_date.strftime('%d-%m-%Y')
+
+    invitations_non_lues = query_pending.order_by(Invitation.created_at.asc()).all()
+    invitations_lues = query_read.order_by(Invitation.read_at.desc()).all()
+
+    # === CORRECTION ICI ===
+    # On passe la date formatée au template
+    date_generation = datetime.datetime.now().strftime('%d-%m-%Y %H:%M')
+
+    html = render_template('pdf/restaurant_report_pdf.html',
+                           invitations_non_lues=invitations_non_lues,
+                           invitations_lues=invitations_lues,
+                           societe_filter=societe_filter,
+                           start_date=start_date_display,
+                           end_date=end_date_display,
+                           date_generation=date_generation) # <-- On ajoute la variable
+
+    pdf = HTML(string=html, base_url=request.url_root).write_pdf()
+    return send_file(io.BytesIO(pdf), mimetype='application/pdf', as_attachment=True, download_name='rapport_restaurant.pdf')

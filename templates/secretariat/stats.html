@@ -4,70 +4,76 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="mb-0">Statistiques des Invitations</h2>
-    <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-secondary">Retour au tableau de bord</a>
 </div>
-
-<!-- Formulaire pour les filtres et le téléchargement -->
+    <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary">Retour au tableau de bord</a>
+</div>
 <div class="card bg-light mb-4">
     <div class="card-body">
         <form method="GET" action="{{ url_for('statistiques_secretariat') }}">
             <h5 class="card-title">Filtres et Rapports</h5>
             <div class="row g-3 align-items-end">
+                <div class="col-md-3"><label class="form-label">Date de début</label><input type="date" class="form-control" name="start_date" value="{{ request.args.get('start_date', '') }}"></div>
+                <div class="col-md-3"><label class="form-label">Date de fin</label><input type="date" class="form-control" name="end_date" value="{{ request.args.get('end_date', '') }}"></div>
                 <div class="col-md-4">
-                    <label for="start_date_stats" class="form-label">Date de début</label>
-                    <input type="date" class="form-control" id="start_date_stats" name="start_date" value="{{ request.args.get('start_date', '') }}">
+                    <label class="form-label">Société</label>
+                    <select name="societe" class="form-select">
+                        <option value="">Toutes les sociétés</option>
+                        {% for societe in societes %}<option value="{{ societe }}" {% if societe == selected_societe %}selected{% endif %}>{{ societe }}</option>{% endfor %}
+                    </select>
                 </div>
-                <div class="col-md-4">
-                    <label for="end_date_stats" class="form-label">Date de fin</label>
-                    <input type="date" class="form-control" id="end_date_stats" name="end_date" value="{{ request.args.get('end_date', '') }}">
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">Filtrer</button>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-success w-100" formaction="{{ url_for('download_stats_pdf') }}">Exporter PDF</button>
+                <div class="col-md-2 d-flex">
+                    <button type="submit" class="btn btn-primary w-100 me-2" title="Appliquer les filtres">Filtrer</button>
+                    <button type="submit" class="btn btn-success w-100" formaction="{{ url_for('download_stats_pdf') }}" title="Télécharger le rapport PDF">PDF</button>
                 </div>
             </div>
-             <div class="form-text">Laissez les dates vides pour inclure toutes les invitations.</div>
         </form>
     </div>
 </div>
 
-<!-- Cartes de statistiques générales -->
 <div class="row">
-    <div class="col-md-3"><div class="card text-white bg-primary mb-3 text-center"><div class="card-body"><h1 class="card-title">{{ total_invitations }}</h1><p class="card-text">Invitations Totales</p></div></div></div>
-    <div class="col-md-3"><div class="card text-white bg-success mb-3 text-center"><div class="card-body"><h1 class="card-title">{{ stats.get('accepted', 0) }}</h1><p class="card-text">Acceptées</p></div></div></div>
-    <div class="col-md-3"><div class="card text-white bg-danger mb-3 text-center"><div class="card-body"><h1 class="card-title">{{ stats.get('rejected', 0) }}</h1><p class="card-text">Refusées</p></div></div></div>
-    <div class="col-md-3"><div class="card text-dark bg-warning mb-3 text-center"><div class="card-body"><h1 class="card-title">{{ stats.get('pending', 0) }}</h1><p class="card-text">En Attente</p></div></div></div>
+    <div class="col-md-4">
+        <a href="{{ url_for('historique_secretariat', from_page='stats') }}" class="text-decoration-none">
+            <div class="card text-white bg-primary mb-3 text-center"><div class="card-body"><h1 class="card-title">{{ total_invitations }}</h1><p class="card-text">Invitations Totales</p></div></div>
+        </a>
+    </div>
+    <div class="col-md-4">
+         <a href="{{ url_for('historique_secretariat', status='pending', from_page='stats') }}" class="text-decoration-none">
+            <div class="card text-white bg-danger mb-3 text-center"><div class="card-body"><h1 class="card-title">{{ stats.get('pending', 0) }}</h1><p class="card-text">Non Lues</p></div></div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="{{ url_for('historique_secretariat', status='read', from_page='stats') }}" class="text-decoration-none">
+            <div class="card text-white bg-success mb-3 text-center"><div class="card-body"><h1 class="card-title">{{ stats.get('read', 0) }}</h1><p class="card-text">Lues</p></div></div>
+        </a>
+    </div>
 </div>
 
-<!-- Tableau des statistiques par société -->
 <div class="row mt-4">
     <div class="col">
-        <h3>Invitations par Société</h3>
+        <h3>Invitations par Société (Résultats des filtres)</h3>
         {% if stats_par_societe %}
-            <div class="card">
-                <div class="table-responsive">
-                    <table class="table table-striped mb-0">
-                        <thead>
-                            <tr>
-                                <th scope="col">Société</th>
-                                <th scope="col" class="text-end">Nombre d'invitations</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for societe, count in stats_par_societe %}
-                            <tr>
-                                <td>{{ societe }}</td>
-                                <td class="text-end">{{ count }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+        <div class="card shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Société</th>
+                            <th class="text-end">Nombre d'invités</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for societe, count in stats_par_societe %}
+                        <tr>
+                            <td>{{ societe }}</td>
+                            <td class="text-end">{{ count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
+        </div>
         {% else %}
-            <div class="alert alert-info">Aucune société n'a été invitée pour cette période.</div>
+        <div class="alert alert-info">Aucune société n'a été invitée pour cette période.</div>
         {% endif %}
     </div>
 </div>

@@ -1,0 +1,74 @@
+<!-- templates/pdf/restaurant_report_pdf.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport Restaurant</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 10px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-bottom: 20px; }
+        .logo { height: 50px; }
+        .contact { text-align: right; font-size: 9px; color: #555; }
+        h1, h2 { text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; page-break-inside: avoid; }
+        th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="/static/images/logo.png" class="logo" alt="Logo">
+        <div class="contact">
+            <strong>Usine de Safi</strong><br>
+            B.P 29, Safi - Maroc
+        </div>
+    </div>
+    <h1>Rapport Restaurant</h1>
+    
+    <p>Généré le: {{ date_generation }}.
+    {% if societe_filter %}
+        Filtre appliqué pour la société : <strong>{{ societe_filter }}</strong>.
+    {% else %}
+        Toutes sociétés.
+    {% endif %}
+    </p>
+
+    <h2>Invitations Non Lues ({{ invitations_non_lues|length }})</h2>
+    {% if invitations_non_lues %}
+    <table>
+        <thead><tr><th>ID</th><th>Date Réception</th><th>Service Demandeur</th><th>Invités (Société)</th></tr></thead>
+        <tbody>
+            {% for invitation in invitations_non_lues %}
+            <tr>
+                <td>#{{ invitation.id }}</td>
+                <td>{{ invitation.created_at.strftime('%d-%m-%Y %H:%M') }}</td>
+                <td>{{ invitation.service_demandeur }}</td>
+                <td>{{ invitation.guests|map(attribute='nom')|join(', ') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Aucune invitation non lue pour cette période.</p>
+    {% endif %}
+
+    <h2 style="margin-top: 30px;">Historique des Lectures ({{ invitations_lues|length }})</h2>
+    {% if invitations_lues %}
+    <table>
+        <thead><tr><th>ID</th><th>Service Demandeur</th><th>Date Réception</th><th>Date Lecture</th></tr></thead>
+        <tbody>
+            {% for invitation in invitations_lues %}
+            <tr>
+                <td>#{{ invitation.id }}</td>
+                <td>{{ invitation.service_demandeur }}</td>
+                <td>{{ invitation.created_at.strftime('%d-%m-%Y %H:%M') }}</td>
+                <td>{{ invitation.read_at.strftime('%d-%m-%Y %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Aucune invitation lue pour cette période.</p>
+    {% endif %}
+</body>
+</html>
